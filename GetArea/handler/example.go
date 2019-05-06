@@ -2,14 +2,18 @@ package handler
 
 import (
 	"context"
-
 	"github.com/micro/go-log"
-
 	example "sss/GetArea/proto/example"
 	"github.com/astaxie/beego"
 	"sss/IhomeWeb/utils"
 	"github.com/astaxie/beego/orm"
 	"sss/IhomeWeb/models"
+	"github.com/astaxie/beego/cache"
+	_ "github.com/astaxie/beego/cache/redis"
+	_ "github.com/garyburd/redigo/redis"
+	_ "github.com/garyburd/redigo/redis"
+	"encoding/json"
+	"time"
 )
 
 type Example struct{}
@@ -24,6 +28,38 @@ func (e *Example) GetArea(ctx context.Context, req *example.Request, rsp *exampl
 	rsp.Errmsg = utils.RecodeText(rsp.Error)
 
 	// 缓存中获取
+	// 准备连接Redis信息
+	redis_conf := map[string]string{
+		"key": utils.G_server_name,
+		"conn": utils.G_redis_addr + ":"+utils.G_redis_port,
+		"dbNum": utils.G_redis_dbnum,
+	}
+
+	// 将map转化成json
+	redis_conf_json, _ := json.Marshal(redis_conf)
+	// 创建Redis句柄
+	bm, err := cache.NewCache("redis",string(redis_conf_json))
+	if err != nil {
+		beego.Info("Redis连接失败",err)
+		rsp.Error = utils.RECODE_DBERR
+		rsp.Errmsg = utils.RecodeText(rsp.Error)
+	}
+
+	// 获取数据 在这里需要定制1个key 就算用来area查询
+	area_value := bm.Get("area_info")
+	if area_value != nil {
+		 beego.Info("获取到地域信息缓存")
+		 area_map := []map[string]interface{}{}
+		 json.Unmarshal(area_value.([]byte),&area_map)
+
+		//beego.Info("从缓存中提取的area数据",area_map)
+		//将查询到的数据按照proto发送给web服务
+		for _, value := range area_map {
+			tmp := example.Response_Area{Aid:int32(value["aid"].(float64)),Aname:value["aname"].(string)}
+			rsp.Data = append(rsp.Data, &tmp)
+		}
+		return nil
+	}
 
 	// 缓存中没有，从mysql中获取
 	var area []models.Area
@@ -42,6 +78,16 @@ func (e *Example) GetArea(ctx context.Context, req *example.Request, rsp *exampl
 		rsp.Error = utils.RECODE_NODATA
 		rsp.Errmsg = utils.RecodeText(rsp.Error)
 		return nil
+	}
+
+	// 将查出来的数据存到Redis中
+	// 将获取到的数据转化为json
+	area_json, _:= json.Marshal(area)
+
+	// 操作Redis将数据存入
+	err = bm.Put("area_info",area_json,time.Second * 3600)
+	if err != nil {
+		beego.Info("数据缓存失败",err)
 	}
 
 	//将查询到的数据按照proto发送给web服务
