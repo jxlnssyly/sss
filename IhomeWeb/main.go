@@ -42,6 +42,9 @@ func main() {
 	// 获取短信验证码
 	router.GET("/api/v1.0/smscode/:mobile",handler.GetSmscd)
 
+	// 注册
+	router.POST("/api/v1.0/users",handler.PostRet)
+
 	// 映射前端页面
 	//service.Handle("/", http.FileServer(http.Dir("html")))
 	service.Handle("/", router)

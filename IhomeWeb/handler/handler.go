@@ -12,6 +12,7 @@ import (
 	GETAREA "sss/GetArea/proto/example"
 	GETIMAGED "sss/GetImaged/proto/example"
 	GETSMSCD "sss/GetSmscd/proto/example"
+	POSTRET "sss/PostRet/proto/example"
 	"github.com/julienschmidt/httprouter"
 	"github.com/micro/go-grpc"
 	"sss/IhomeWeb/models"
@@ -20,7 +21,6 @@ import (
 	"image"
 	"github.com/afocus/captcha"
 	"image/png"
-	"regexp"
 )
 
 func ExampleCall(w http.ResponseWriter, r *http.Request) {
@@ -191,6 +191,7 @@ func GetSmscd(w http.ResponseWriter, r *http.Request,  ps httprouter.Params) {
 	id := r.URL.Query()["id"][0]
 	mobile := ps.ByName("mobile")
 
+	/*
 	// 通过正则进行手机号的判断
 	mobile_re := regexp.MustCompile(`0?(13|14|15|17|18|19)[0-9]{9}`)
 	// 通过条件判断字符串是否匹配规则，返回正确或失败
@@ -210,7 +211,7 @@ func GetSmscd(w http.ResponseWriter, r *http.Request,  ps httprouter.Params) {
 		return
 	}
 
-
+	*/
 
 	// 创建并初始化服务
 	service := grpc.NewService()
@@ -234,6 +235,73 @@ func GetSmscd(w http.ResponseWriter, r *http.Request,  ps httprouter.Params) {
 		"errmsg": rsp.ErrorMsg,
 	}
 
+
+	// encode and write the response as json
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+}
+
+// 注册
+func PostRet(w http.ResponseWriter, r *http.Request,  ps httprouter.Params) {
+
+	beego.Info("PostRet")
+
+	service := grpc.NewService()
+	service.Init()
+
+	// decode the incoming request as json
+	var request map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, err.Error(), 500)
+		beego.Info(err)
+		return
+	}
+
+	w.Header().Set("Content-Type","application/json")
+
+	if request["mobile"].(string) == "" || request["password"].(string) == "" || request["sms_code"].(string) == "" {
+		response := map[string]interface{}{
+			"errno": utils.RECODE_DATAERR,
+			"errmsg": utils.RecodeText(utils.RECODE_DATAERR),
+		}
+
+		// encode and write the response as json
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		return
+	}
+
+	// call the backend service
+	exampleClient := POSTRET.NewExampleService("go.micro.srv.PostRet", service.Client())
+	rsp, err := exampleClient.PostRet(context.TODO(), &POSTRET.Request{
+		Mobile: request["mobile"].(string),
+		Password:request["password"].(string),
+		SmsCode:request["sms_code"].(string),
+	})
+
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	// 读取cookie 统一cookie
+	cookie, err := r.Cookie("userlogin")
+	if err != nil || "" == cookie.Value {
+		// 创建1个cookie对象
+		cookie := http.Cookie{Name:"userlogin",Value:rsp.SessionId,Path:"/",MaxAge:3600}
+		// 对浏览器的cookie进行设置
+		http.SetCookie(w, &cookie)
+	}
+
+	// we want to augment the response
+	response := map[string]interface{}{
+		"errno": rsp.Error,
+		"errmsg": rsp.Errmsg,
+	}
 
 	// encode and write the response as json
 	if err := json.NewEncoder(w).Encode(response); err != nil {

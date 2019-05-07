@@ -77,7 +77,7 @@ func (e *Example) GetSmscd(ctx context.Context, req *example.Request, rsp *examp
 	//beego.Info(reflect.TypeOf(value))
 	value_str, _ := redis.String(value,nil)
 	if value_str != req.Imagestr {
-		beego.Info("请输入正确的验证码",err)
+		beego.Info("请输入正确的图片验证码",err)
 		rsp.Error = utils.RECODE_DATAERR
 		rsp.ErrorMsg = utils.RecodeText(rsp.Error)
 		return nil
