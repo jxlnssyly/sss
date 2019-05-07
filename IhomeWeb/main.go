@@ -39,6 +39,9 @@ func main() {
 	// 获取验证码图片
 	router.GET("/api/v1.0/imagecode/:uuid",handler.GetImageCode)
 
+	// 获取短信验证码
+	router.GET("/api/v1.0/smscode/:mobile",handler.GetSmscd)
+
 	// 映射前端页面
 	//service.Handle("/", http.FileServer(http.Dir("html")))
 	service.Handle("/", router)

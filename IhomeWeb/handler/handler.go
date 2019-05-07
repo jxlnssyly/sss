@@ -11,14 +11,16 @@ import (
 	// 调用area的proto
 	GETAREA "sss/GetArea/proto/example"
 	GETIMAGED "sss/GetImaged/proto/example"
+	GETSMSCD "sss/GetSmscd/proto/example"
 	"github.com/julienschmidt/httprouter"
 	"github.com/micro/go-grpc"
 	"sss/IhomeWeb/models"
 	"github.com/astaxie/beego"
-	"pra/IhomeWeb/utils"
+	"sss/IhomeWeb/utils"
 	"image"
 	"github.com/afocus/captcha"
 	"image/png"
+	"regexp"
 )
 
 func ExampleCall(w http.ResponseWriter, r *http.Request) {
@@ -121,6 +123,7 @@ func GetImageCode(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	})
 	if err != nil {
 		http.Error(w, err.Error(), 500)
+		beego.Info(err)
 		return
 	}
 
@@ -171,6 +174,67 @@ func GetIndex(w http.ResponseWriter, r *http.Request,_ httprouter.Params) {
 	}
 	// 设置数据格式
 	w.Header().Set("Content-Type","application/json")
+	// encode and write the response as json
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+}
+
+// 获取短信验证码
+func GetSmscd(w http.ResponseWriter, r *http.Request,  ps httprouter.Params) {
+	beego.Info("GetSmscd")
+	w.Header().Set("Content-Type","application/json")
+
+	// URL里面的请求参数
+	text := r.URL.Query()["text"][0]
+	id := r.URL.Query()["id"][0]
+	mobile := ps.ByName("mobile")
+
+	// 通过正则进行手机号的判断
+	mobile_re := regexp.MustCompile(`0?(13|14|15|17|18|19)[0-9]{9}`)
+	// 通过条件判断字符串是否匹配规则，返回正确或失败
+	bl := mobile_re.MatchString(mobile)
+	if !bl {
+		// we want to augment the response
+		response := map[string]interface{}{
+			"error": utils.RECODE_MOBILEERR,
+			"errmsg": utils.RecodeText(utils.RECODE_MOBILEERR),
+		}
+
+		// encode and write the response as json
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		return
+	}
+
+
+
+	// 创建并初始化服务
+	service := grpc.NewService()
+	service.Init()
+
+	// call the backend service
+	exampleClient := GETSMSCD.NewExampleService("go.micro.srv.GetSmscd", service.Client())
+	rsp, err := exampleClient.GetSmscd(context.TODO(), &GETSMSCD.Request{
+		Mobile: mobile,
+		Imagestr: text,
+		Uuid: id,
+	})
+	if err != nil {
+		beego.Info(err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	// we want to augment the response
+	response := map[string]interface{}{
+		"error": rsp.Error,
+		"errmsg": rsp.ErrorMsg,
+	}
+
+
 	// encode and write the response as json
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, err.Error(), 500)

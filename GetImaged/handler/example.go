@@ -26,11 +26,11 @@ func (e *Example) GetImaged(ctx context.Context, req *example.Request, rsp *exam
 	beego.Info("GetImageCode -- server ")
 
 	cap := captcha.New()
-
-	if err := cap.SetFont("comic.ttf"); err != nil {
+	if err := cap.SetFont("./comic.ttf"); err != nil {
+		beego.Info(err)
 		panic(err.Error())
 	}
-
+	beego.Info("------")
 	cap.SetSize(90, 41)
 	cap.SetDisturbance(captcha.NORMAL)
 	cap.SetFrontColor(color.RGBA{255, 255, 255, 255})
