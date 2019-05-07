@@ -99,6 +99,7 @@ func (e *Example) GetArea(ctx context.Context, req *example.Request, rsp *exampl
 	return nil
 }
 
+
 // Stream is a server side stream handler called via client.Stream or the generated client code
 func (e *Example) Stream(ctx context.Context, req *example.StreamingRequest, stream example.Example_StreamStream) error {
 	log.Logf("Received Example.Stream request with count: %d", req.Count)
