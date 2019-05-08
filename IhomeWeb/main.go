@@ -2,12 +2,11 @@ package main
 
 import (
 	"github.com/micro/go-log"
-	"net/http"
-
 	"github.com/micro/go-web"
 	"github.com/julienschmidt/httprouter"
 	_ "sss/IhomeWeb/models"
 	"sss/IhomeWeb/handler"
+	"net/http"
 )
 
 func main() {
@@ -30,9 +29,6 @@ func main() {
 	// 获取地区请求
 	router.GET("/api/v1.0/areas",handler.GetArea)
 
-	// 获取session
-	router.GET("/api/v1.0/session",handler.GetSession)
-
 	// 获取首页轮播图
 	router.GET("/api/v1.0/house/index",handler.GetIndex)
 
@@ -44,6 +40,18 @@ func main() {
 
 	// 注册
 	router.POST("/api/v1.0/users",handler.PostRet)
+
+	// 获取session
+	router.GET("/api/v1.0/session",handler.GetSession)
+
+	// 登录
+	router.POST("/api/v1.0/sessions",handler.PostLogin)
+
+	// 退出登录
+	router.DELETE("/api/v1.0/session",handler.DeleteSession)
+
+	// 获取用户信息
+	router.GET("/api/v1.0/user",handler.GetUserInfo)
 
 	// 映射前端页面
 	//service.Handle("/", http.FileServer(http.Dir("html")))

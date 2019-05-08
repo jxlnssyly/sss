@@ -10,10 +10,8 @@ import (
 	"sss/IhomeWeb/utils"
 	"github.com/astaxie/beego/orm"
 	"sss/IhomeWeb/models"
-	"encoding/json"
 	_ "github.com/astaxie/beego/cache/redis"
 	_ "github.com/garyburd/redigo/redis"
-	"github.com/astaxie/beego/cache"
 	"github.com/garyburd/redigo/redis"
 	"math/rand"
 	"time"
@@ -46,17 +44,8 @@ func (e *Example) GetSmscd(ctx context.Context, req *example.Request, rsp *examp
 	// 验证图片验证码是否正确
 
 	// 准备连接Redis信息
-	//
-	redis_conf := map[string]string{
-		"key": utils.G_server_name,
-		"conn": utils.G_redis_addr + ":"+utils.G_redis_port,
-		"dbNum": utils.G_redis_dbnum,
-	}
+	bm, err := utils.GetRedisServer()
 
-	// 将map转化成json
-	redis_conf_json, _ := json.Marshal(redis_conf)
-	// 创建Redis句柄
-	bm, err := cache.NewCache("redis",string(redis_conf_json))
 	if err != nil {
 		beego.Info("Redis连接失败",err)
 		rsp.Error = utils.RECODE_DBERR

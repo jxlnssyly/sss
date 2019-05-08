@@ -5,60 +5,44 @@ import (
 
 	"github.com/micro/go-log"
 
-	example "sss/GetImaged/proto/example"
+	example "sss/DeleteSession/proto/example"
 	"github.com/astaxie/beego"
-	"github.com/afocus/captcha"
-	"image/color"
-
 	"sss/IhomeWeb/utils"
-	"time"
 )
 
 type Example struct{}
 
 // Call is a single request handler called via client.Call or the generated client code
-func (e *Example) GetImaged(ctx context.Context, req *example.Request, rsp *example.Response) error {
-	beego.Info("GetImageCode -- server ")
+func (e *Example) DeleteSession(ctx context.Context, req *example.Request, rsp *example.Response) error {
+	beego.Info("DeleteSession -- server")
 
-	cap := captcha.New()
-	if err := cap.SetFont("./comic.ttf"); err != nil {
-		beego.Info(err)
-		panic(err.Error())
-	}
-	beego.Info("------")
-	cap.SetSize(90, 41)
-	cap.SetDisturbance(captcha.NORMAL)
-	cap.SetFrontColor(color.RGBA{255, 255, 255, 255})
-	cap.SetBkgColor(color.RGBA{255, 0, 0, 255}, color.RGBA{0, 0, 255, 255}, color.RGBA{0, 153, 0, 255})
+	// 返回值初始化
+	rsp.Errno = utils.RECODE_OK
+	rsp.Errmsg = utils.RecodeText(rsp.Errno)
 
-	// 生成随机的验证码图片
-	img, str := cap.Create(4, captcha.NUM)
-
+	// 准备连接Redis信息
 	bm, err := utils.GetRedisServer()
 
 	if err != nil {
 		beego.Info("Redis连接失败",err)
-		rsp.Error = utils.RECODE_DBERR
-		rsp.Errmsg = utils.RecodeText(rsp.Error)
+		rsp.Errno = utils.RECODE_DBERR
+		rsp.Errmsg = utils.RecodeText(rsp.Errno)
+		return nil
 	}
 
-	// 验证码缓存与uuid进行缓存
-	bm.Put(req.Uuid,str,time.Second * 300)
+	sessionid := req.Sessionid
 
-	// 图片解引用
-	img1 := *img
-	img2 := *img1.RGBA
+	// 拼接key
+	// 将登录信息缓存
+	sessionuser_id := sessionid + "user_id"
+	bm.Delete(sessionuser_id)
+	// name
+	sessionname := sessionid+"name"
+	bm.Delete(sessionname)
 
-	rsp.Error = utils.RECODE_OK
-	rsp.Errmsg = utils.RecodeText(rsp.Error)
-
-	// 返回图片拆分
-	rsp.Pix = []byte(img2.Pix)
-	rsp.Stride = int64(img2.Stride)
-	rsp.Max = &example.Response_Point{X:int64(img2.Rect.Max.X),Y:int64(img2.Rect.Max.Y)}
-	rsp.Min = &example.Response_Point{X:int64(img2.Rect.Min.X),Y:int64(img2.Rect.Min.Y)}
-
-
+	// mobile
+	sessionmobile := sessionid + "mobile"
+	bm.Delete(sessionmobile)
 
 	return nil
 }

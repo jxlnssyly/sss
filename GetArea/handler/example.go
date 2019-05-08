@@ -8,9 +8,7 @@ import (
 	"sss/IhomeWeb/utils"
 	"github.com/astaxie/beego/orm"
 	"sss/IhomeWeb/models"
-	"github.com/astaxie/beego/cache"
 	_ "github.com/astaxie/beego/cache/redis"
-	_ "github.com/garyburd/redigo/redis"
 	_ "github.com/garyburd/redigo/redis"
 	"encoding/json"
 	"time"
@@ -27,18 +25,8 @@ func (e *Example) GetArea(ctx context.Context, req *example.Request, rsp *exampl
 	rsp.Error = utils.RECODE_OK
 	rsp.Errmsg = utils.RecodeText(rsp.Error)
 
-	// 缓存中获取
-	// 准备连接Redis信息
-	redis_conf := map[string]string{
-		"key": utils.G_server_name,
-		"conn": utils.G_redis_addr + ":"+utils.G_redis_port,
-		"dbNum": utils.G_redis_dbnum,
-	}
+	bm, err := utils.GetRedisServer()
 
-	// 将map转化成json
-	redis_conf_json, _ := json.Marshal(redis_conf)
-	// 创建Redis句柄
-	bm, err := cache.NewCache("redis",string(redis_conf_json))
 	if err != nil {
 		beego.Info("Redis连接失败",err)
 		rsp.Error = utils.RECODE_DBERR
