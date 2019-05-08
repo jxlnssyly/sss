@@ -36,8 +36,6 @@ func (e *Example) GetUserInfo(ctx context.Context, req *example.Request, rsp *ex
 		return nil
 	}
 
-
-
 	// 拼接Key
 	sessionuser_id := sessionid + "user_id"
 
