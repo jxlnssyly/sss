@@ -53,6 +53,12 @@ func main() {
 	// 获取用户信息
 	router.GET("/api/v1.0/user",handler.GetUserInfo)
 
+	// 上传头像
+	router.POST("/api/v1.0/user/avatar",handler.PostAvatar)
+
+	// 用户认证检查
+	router.GET("/api/v1.0/user/auth",handler.GetUserAuth)
+
 	// 映射前端页面
 	//service.Handle("/", http.FileServer(http.Dir("html")))
 	service.Handle("/", router)

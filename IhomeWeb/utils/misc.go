@@ -8,6 +8,8 @@ import (
 	_ "github.com/astaxie/beego/cache/redis"
 	_ "github.com/garyburd/redigo/redis"
 	"github.com/astaxie/beego/cache"
+	"github.com/weilaihui/fdfs_client"
+	"fmt"
 )
 
 /* 将url加上 http://IP:PROT/  前缀 */
@@ -43,4 +45,25 @@ func GetRedisServer() (adapter cache.Cache, err error) {
 	bm, err := cache.NewCache("redis",string(redis_conf_json))
 
 	return bm, err
+}
+
+// 上传二进制文件到fdfs
+func UploadByBuffer(filebuffer []byte, fileExt string) (fildid string,err error)  {
+	fd_client, err := fdfs_client.NewFdfsClient("/Users/dabaicai/go/src/sss/IhomeWeb/conf/client.conf")
+	if err != nil {
+		fmt.Println("创建fdfs句柄失败",err)
+		fildid = ""
+		return
+	}
+	fd_rsp, err := fd_client.UploadByBuffer(filebuffer,fileExt)
+	if err != nil {
+		fmt.Println("上传失败",err)
+		fildid = ""
+		return
+	}
+	fmt.Println(fd_rsp)
+	fmt.Println(fd_rsp.RemoteFileId)
+	fildid = fd_rsp.RemoteFileId
+
+	return fildid, nil
 }

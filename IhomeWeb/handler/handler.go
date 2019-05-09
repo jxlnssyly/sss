@@ -17,6 +17,8 @@ import (
 	POSTLOGIN "sss/PostLogin/proto/example"
 	DELETESESSION "sss/DeleteSession/proto/example"
 	GETUSERINFO "sss/GetUserInfo/proto/example"
+
+	POSTAVATAR "sss/PostAvatar/proto/example"
 	"github.com/julienschmidt/httprouter"
 	"github.com/micro/go-grpc"
 	"sss/IhomeWeb/models"
@@ -531,5 +533,159 @@ func GetUserInfo(w http.ResponseWriter, r *http.Request,_ httprouter.Params) {
 	}
 }
 
+// 上传头像
+func PostAvatar(w http.ResponseWriter, r *http.Request,_ httprouter.Params) {
+
+	beego.Info("PostAvatar")
+
+	w.Header().Set("Content-Type","application/json")
+
+	// 获取前端的图片
+	file,fileHeader,err := r.FormFile("avatar")
+
+	if err != nil {
+		response := map[string]interface{}{
+			"errno": utils.RECODE_DATAERR,
+			"errmsg": utils.RecodeText(utils.RECODE_DATAERR),
+		}
+
+		// encode and write the response as json
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			beego.Info(err)
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		return
+	}
+	// 获取sessionid
+	cookie, err := r.Cookie("userlogin")
+	if cookie.Value == "" || err != nil {
+		response := map[string]interface{}{
+			"errno": utils.RECODE_DATAERR,
+			"errmsg": utils.RecodeText(utils.RECODE_DATAERR),
+		}
+
+		// encode and write the response as json
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			beego.Info(err)
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		return
+	}
+
+	service := grpc.NewService()
+	service.Init()
+
+	fileSize := fileHeader.Size
+	// 创建一个文件大小的切片
+	fileBuf := make([]byte,fileSize)
+
+	// 将file的数据读到filebuf
+	_, err = file.Read(fileBuf)
+
+	if err != nil {
+		response := map[string]interface{}{
+			"errno": utils.RECODE_DATAERR,
+			"errmsg": utils.RecodeText(utils.RECODE_DATAERR),
+		}
+
+		// encode and write the response as json
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			beego.Info(err)
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		return
+	}
+	// call the backend service
+	exampleClient := POSTAVATAR.NewExampleService("go.micro.srv.PostAvatar",service.Client())
+	rsp, err := exampleClient.PostAvatar(context.TODO(), &POSTAVATAR.Request{
+		Sessionid:cookie.Value,
+		Avatar:fileBuf,
+		FileExt:fileHeader.Filename,
+		Filesize:fileSize,
+
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	data := make(map[string]string)
+	data["avatar_url"] = utils.AddDomain2Url(rsp.AvatarUrl)
+	// we want to augment the response
+	response := map[string]interface{}{
+		"errmsg": rsp.Errmsg,
+		"errno": rsp.Errno,
+		"data": data,
+	}
+
+	// encode and write the response as json
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+}
+
+
+func GetUserAuth(w http.ResponseWriter, r *http.Request,_ httprouter.Params) {
+
+	beego.Info("GetUserAuth")
+
+	w.Header().Set("Content-Type","application/json")
+
+	service := grpc.NewService()
+	service.Init()
+	// call the backend service
+	exampleClient := GETUSERINFO.NewExampleService("go.micro.srv.GetUserInfo", service.Client())
+
+	// 获取sessionid
+	cookie, err := r.Cookie("userlogin")
+
+	if cookie.Value == "" || err != nil {
+		response := map[string]interface{}{
+			"errno": utils.RECODE_DATAERR,
+			"errmsg": utils.RecodeText(utils.RECODE_DATAERR),
+		}
+
+		// encode and write the response as json
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			beego.Info(err)
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		return
+	}
+
+	rsp, err := exampleClient.GetUserInfo(context.TODO(), &GETUSERINFO.Request{
+		Sessionid: cookie.Value,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	data := make(map[string]interface{})
+	data["name"] = rsp.Name
+	data["mobile"] = rsp.Mobile
+	data["user_id"] = rsp.UserId
+	data["real_name"] = rsp.RealName
+	data["id_card"] = rsp.IdCard
+	data["avatar_url"] = utils.AddDomain2Url(rsp.AvatarUrl)
+
+	// we want to augment the response
+	response := map[string]interface{}{
+		"errno": rsp.Errorno,
+		"errmsg": utils.RecodeText(rsp.Errorno),
+		"data": data,
+	}
+
+	// encode and write the response as json
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+}
 
 
