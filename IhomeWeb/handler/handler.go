@@ -17,7 +17,7 @@ import (
 	POSTLOGIN "sss/PostLogin/proto/example"
 	DELETESESSION "sss/DeleteSession/proto/example"
 	GETUSERINFO "sss/GetUserInfo/proto/example"
-
+	POSTMUTILIMAGE "sss/PostMutilImage/proto/example"
 	POSTAVATAR "sss/PostAvatar/proto/example"
 	"github.com/julienschmidt/httprouter"
 	"github.com/micro/go-grpc"
@@ -27,6 +27,7 @@ import (
 	"image"
 	"github.com/afocus/captcha"
 	"image/png"
+	"reflect"
 )
 
 func ExampleCall(w http.ResponseWriter, r *http.Request,_ httprouter.Params) {
@@ -619,6 +620,127 @@ func PostAvatar(w http.ResponseWriter, r *http.Request,_ httprouter.Params) {
 		"errmsg": rsp.Errmsg,
 		"errno": rsp.Errno,
 		"data": data,
+	}
+
+	// encode and write the response as json
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+}
+
+func PostMutilImage(w http.ResponseWriter, r *http.Request,_ httprouter.Params) {
+
+	beego.Info("PostMutilImage")
+
+	w.Header().Set("Content-Type","application/json")
+
+	//设置内存大小
+	r.ParseMultipartForm(32 << 20)
+	//获取上传的文件组
+	files := r.MultipartForm.File["avatar"]
+
+	len := len(files)
+	//beego.Info(len)
+	// 获取前端的图片
+	//file,fileHeader,err := r.FormFile("avatar")
+
+	//if err != nil {
+	//	response := map[string]interface{}{
+	//		"errno": utils.RECODE_DATAERR,
+	//		"errmsg": utils.RecodeText(utils.RECODE_DATAERR),
+	//	}
+	//
+	//	// encode and write the response as json
+	//	if err := json.NewEncoder(w).Encode(response); err != nil {
+	//		beego.Info(err)
+	//		http.Error(w, err.Error(), 500)
+	//		return
+	//	}
+	//	return
+	//}
+	// 获取sessionid
+	//cookie, err := r.Cookie("userlogin")
+	//if cookie.Value == "" || err != nil {
+	//	response := map[string]interface{}{
+	//		"errno": utils.RECODE_DATAERR,
+	//		"errmsg": utils.RecodeText(utils.RECODE_DATAERR),
+	//	}
+	//
+	//	// encode and write the response as json
+	//	if err := json.NewEncoder(w).Encode(response); err != nil {
+	//		beego.Info(err)
+	//		http.Error(w, err.Error(), 500)
+	//		return
+	//	}
+	//	return
+	//}
+
+	service := grpc.NewService()
+	service.Init()
+
+	//fileSize := fileHeader.Size
+	//// 创建一个文件大小的切片
+	//fileBuf := make([]byte,fileSize)
+	//
+	//// 将file的数据读到filebuf
+	//_, err = file.Read(fileBuf)
+
+	//if err != nil {
+	//	response := map[string]interface{}{
+	//		"errno": utils.RECODE_DATAERR,
+	//		"errmsg": utils.RecodeText(utils.RECODE_DATAERR),
+	//	}
+	//
+	//	// encode and write the response as json
+	//	if err := json.NewEncoder(w).Encode(response); err != nil {
+	//		beego.Info(err)
+	//		http.Error(w, err.Error(), 500)
+	//		return
+	//	}
+	//	return
+	//}
+
+	images := []*POSTMUTILIMAGE.Avatar{}
+	for i := 0; i < len; i++ {
+		//打开上传文件
+		file, err := files[i].Open()
+
+		beego.Info(reflect.TypeOf(files[i]).String())
+		defer file.Close()
+		if err != nil {
+			beego.Info(err)
+		}
+		fileBuf := make([]byte,files[i].Size)
+		_, err = file.Read(fileBuf)
+
+		if err != nil {
+			beego.Info(err)
+		}
+		ava := POSTMUTILIMAGE.Avatar{
+			Avatar:fileBuf,
+			FileExt:files[i].Filename,
+			Filesize:files[i].Size,
+		}
+		images = append(images,&ava)
+	}
+	// call the backend service
+	exampleClient := POSTMUTILIMAGE.NewExampleService("go.micro.srv.PostMutilImage",service.Client())
+	rsp, err := exampleClient.PostMutilImage(context.TODO(), &POSTMUTILIMAGE.Request{
+		Images:images,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	//data := make(map[string]string)
+	//data["avatar_url"] = utils.AddDomain2Url(rsp.AvatarUrl)
+	//// we want to augment the response
+	response := map[string]interface{}{
+		"errmsg": rsp.String(),
+		//"errno": rsp.Errno,
+		//"data": data,
 	}
 
 	// encode and write the response as json

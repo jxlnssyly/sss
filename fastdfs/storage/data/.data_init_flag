@@ -1,8 +1,8 @@
-storage_join_time=1557369738
+storage_join_time=1557626339
 sync_old_done=1
 sync_src_server=
 sync_until_timestamp=0
-last_ip_addr=10.200.12.52
+last_ip_addr=192.168.0.101
 last_server_port=23000
 last_http_port=8888
 current_trunk_file_id=0

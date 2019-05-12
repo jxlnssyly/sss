@@ -1,10 +1,10 @@
-# storage 10.200.12.52:23000
+# storage 192.168.0.101:23000
 [Storage001]
 	group_name=group1
-	ip_addr=10.200.12.52
+	ip_addr=192.168.0.101
 	status=6
 	version=5.12
-	join_time=1557369738
+	join_time=1557626339
 	storage_port=23000
 	storage_http_port=8888
 	domain_name=

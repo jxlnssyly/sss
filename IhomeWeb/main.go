@@ -54,7 +54,10 @@ func main() {
 	router.GET("/api/v1.0/user",handler.GetUserInfo)
 
 	// 上传头像
-	router.POST("/api/v1.0/user/avatar",handler.PostAvatar)
+	//router.POST("/api/v1.0/user/avatar",handler.PostAvatar)
+
+	// 上传头像
+	router.POST("/api/v1.0/user/avatar",handler.PostMutilImage)
 
 	// 用户认证检查
 	router.GET("/api/v1.0/user/auth",handler.GetUserAuth)
